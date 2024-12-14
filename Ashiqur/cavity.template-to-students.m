@@ -493,7 +493,29 @@ global u
 % !************ADD CODING HERE FOR INTRO CFD STUDENTS************ */
 % !************************************************************** */
 
+% Boundary conditions for U-velocity (x-direction) and V-velocity (y-direction)
+u(1, 2:jmax-1, 2:3) = zero;      % No-slip condition on U and V at the Left boundary (x = 0, any y)
+u(imax, 2:jmax-1, 2:3) = zero;   % No-slip condition on U and V at the Right boundary (x = L, any y)
+u(1:imax, 1, 2:3) = zero;        % No-slip condition on U and V at the Bottom boundary (any x, y = 0)
+u(1:imax, jmax, 2) = uinf;       % Top boundary U-velocity (lid velocity, x-direction)
+u(1:imax, jmax, 3) = zero;       % Top boundary V-velocity (no vertical velocity, y-direction)
 
+% Boundary conditions for pressure at interior nodes
+for j = 2:jmax-1
+    u(1, j, 1) = two * u(2, j, 1) - u(3, j, 1);             % Pressure at Left boundary (x = 0)
+    u(imax, j, 1) = two * u(imax-1, j, 1) - u(imax-2, j, 1); % Pressure at Right boundary (x = L)
+end
+
+for i = 2:imax-1
+    u(i, 1, 1) = two * u(i, 2, 1) - u(i, 3, 1);             % Pressure at Bottom boundary (y = 0)
+    u(i, jmax, 1) = two * u(i, jmax-1, 1) - u(i, jmax-2, 1); % Pressure at Top boundary (y = L)
+end
+
+% Boundary conditions for pressure at corner nodes
+u(1, 1, 1) = half * (u(2, 1, 1) + u(1, 2, 1));              % Bottom-left corner (x = 0, y = 0)
+u(imax, 1, 1) = half * (u(imax-1, 1, 1) + u(imax, 2, 1));    % Bottom-right corner (x = L, y = 0)
+u(1, jmax, 1) = half * (u(1, jmax-1, 1) + u(2, jmax, 1));    % Top-left corner (x = 0, y = L)
+u(imax, jmax, 1) = half * (u(imax-1, jmax, 1) + u(imax, jmax-1, 1)); % Top-right corner (x = L, y = L)
 
 end
 %************************************************************************
