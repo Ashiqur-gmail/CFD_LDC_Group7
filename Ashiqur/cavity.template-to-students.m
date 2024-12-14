@@ -868,8 +868,40 @@ global u dt
 % !************ADD CODING HERE FOR INTRO CFD STUDENTS************ */
 % !************************************************************** */
 
+% Initialize maximum allowable timestep
+delta_t_max = 1.0e+99;
 
+% Iterate through all interior nodes to calculate time step restrictions
+for i = 2:imax-1
+    for j = 2:jmax-1
+        % Compute the square of the velocity magnitude (u^2 + v^2) at each node
+        uvel2 = u(i, j, 2)^2 + u(i, j, 3)^2;
 
+        % Compute beta squared, ensuring it is at least rkappa * vel2ref
+        beta2 = max(uvel2, rkappa * vel2ref);
+
+        % Calculate maximum eigenvalue in the x-direction (lambda_x)
+        lambda_x = half * (abs(u(i, j, 2)) + sqrt((u(i, j, 2)^2) + (four * beta2)));
+
+        % Calculate maximum eigenvalue in the y-direction (lambda_y)
+        lambda_y = half * (abs(u(i, j, 3)) + sqrt((u(i, j, 3)^2) + (four * beta2)));
+
+        % Determine the maximum eigenvalue between lambda_x and lambda_y
+        lambda_max = max(lambda_x, lambda_y);
+
+        % Compute the local convective time step restriction
+        dtconv = min(dx, dy) / abs(lambda_max);
+
+        % Compute the viscous time step restriction (constant for the domain)
+        dtvisc = fourth * (dx * dy * rho) / rmu;
+
+        % Compute the local time step as the minimum of convective and viscous restrictions
+        dt(i, j) = cfl * min(dtconv, dtvisc);
+
+        % Update the global minimum time step (dtmin)
+        dtmin = min(dt(i, j), dtmin);
+    end
+end
 
 end
 %************************************************************************
