@@ -937,9 +937,80 @@ global artviscx artviscy
 % !************************************************************** */
 % !************ADD CODING HERE FOR INTRO CFD STUDENTS************ */
 % !************************************************************** */
+% Artificial viscosity computation for interior nodes [3:imax-2, 3:jmax-2]
+for i = 3:imax-2
+    for j = 3:jmax-2
+        uvel2 = (u(i, j, 2)^2 + u(i, j, 3)^2); % Compute the velocity magnitude squared
+        beta2 = max(uvel2, rkappa * vel2ref);  % Compute beta squared
+        lambda_x = half * (abs(u(i, j, 2)) + sqrt(u(i, j, 2)^2 + (four * beta2))); % Lambda in x-direction
+        lambda_y = half * (abs(u(i, j, 3)) + sqrt(u(i, j, 3)^2 + (four * beta2))); % Lambda in y-direction
+        d4pdx4 = (u(i+2, j, 1) - four * u(i+1, j, 1) + six * u(i, j, 1) - four * u(i-1, j, 1) + u(i-2, j, 1)) / (dx^four); % 4th derivative w.r.t. x
+        d4pdy4 = (u(i, j+2, 1) - four * u(i, j+1, 1) + six * u(i, j, 1) - four * u(i, j-1, 1) + u(i, j-2, 1)) / (dy^four); % 4th derivative w.r.t. y
+        artviscx(i, j) = (-lambda_x * Cx * (dx^3) * d4pdx4) / beta2; % Artificial viscosity in x
+        artviscy(i, j) = (-lambda_y * Cy * (dy^3) * d4pdy4) / beta2; % Artificial viscosity in y
+    end
+end
 
+% Artificial viscosity computation for Left boundary nodes [2, 3:jmax-2]
+for j = 3:jmax-2
+    for i = 2
+        uvel2 = (u(i, j, 2)^2 + u(i, j, 3)^2);
+        beta2 = max(uvel2, rkappa * vel2ref);
+        lambda_y = half * (abs(u(i, j, 3)) + sqrt(u(i, j, 3)^2 + (four * beta2)));
+        d4pdy4 = (u(i, j+2, 1) - four * u(i, j+1, 1) + six * u(i, j, 1) - four * u(i, j-1, 1) + u(i, j-2, 1)) / (dy^four);
+        artviscx(i, j) = artviscx(i+1, j); % Use neighboring node for x viscosity
+        artviscy(i, j) = (-lambda_y * Cy * (dy^3) * d4pdy4) / beta2;
+    end
+end
 
+% Artificial viscosity computation for Right boundary nodes [imax-1, 3:jmax-2]
+for j = 3:jmax-2
+    for i = imax-1
+        uvel2 = (u(i, j, 2)^2 + u(i, j, 3)^2);
+        beta2 = max(uvel2, rkappa * vel2ref);
+        lambda_y = half * (abs(u(i, j, 3)) + sqrt(u(i, j, 3)^2 + (four * beta2)));
+        d4pdy4 = (u(i, j+2, 1) - four * u(i, j+1, 1) + six * u(i, j, 1) - four * u(i, j-1, 1) + u(i, j-2, 1)) / (dy^four);
+        artviscx(i, j) = artviscx(i-1, j); % Use neighboring node for x viscosity
+        artviscy(i, j) = (-lambda_y * Cy * (dy^3) * d4pdy4) / beta2;
+    end
+end
 
+% Artificial viscosity computation for Bottom boundary nodes [3:imax-2, 2]
+for i = 3:imax-2
+    for j = 2
+        uvel2 = (u(i, j, 2)^2 + u(i, j, 3)^2);
+        beta2 = max(uvel2, rkappa * vel2ref);
+        lambda_x = half * (abs(u(i, j, 2)) + sqrt(u(i, j, 2)^2 + (four * beta2)));
+        d4pdx4 = (u(i+2, j, 1) - four * u(i+1, j, 1) + six * u(i, j, 1) - four * u(i-1, j, 1) + u(i-2, j, 1)) / (dx^four);
+        artviscx(i, j) = (-lambda_x * Cx * (dx^3) * d4pdx4) / beta2;
+        artviscy(i, j) = artviscy(i, j+1); % Use neighboring node for y viscosity
+    end
+end
+
+% Artificial viscosity computation for Top boundary nodes [3:imax-2, jmax-1]
+for i = 3:imax-2
+    for j = jmax-1
+        uvel2 = (u(i, j, 2)^2 + u(i, j, 3)^2);
+        beta2 = max(uvel2, rkappa * vel2ref);
+        lambda_x = half * (abs(u(i, j, 2)) + sqrt(u(i, j, 2)^2 + (four * beta2)));
+        d4pdx4 = (u(i+2, j, 1) - four * u(i+1, j, 1) + six * u(i, j, 1) - four * u(i-1, j, 1) + u(i-2, j, 1)) / (dx^four);
+        artviscx(i, j) = (-lambda_x * Cx * (dx^3) * d4pdx4) / beta2;
+        artviscy(i, j) = artviscy(i, j-1); % Use neighboring node for y viscosity
+    end
+end
+
+% Artificial viscosity computation for corner nodes
+artviscx(2, 2) = half * (artviscx(2, 3) + artviscx(3, 2));
+artviscy(2, 2) = half * (artviscy(2, 3) + artviscy(3, 2));
+
+artviscx(imax-1, 2) = half * (artviscx(imax-2, 2) + artviscx(imax-1, 3));
+artviscy(imax-1, 2) = half * (artviscy(imax-2, 2) + artviscy(imax-1, 3));
+
+artviscx(imax-1, jmax-1) = half * (artviscx(imax-2, jmax-1) + artviscx(imax-1, jmax-2));
+artviscy(imax-1, jmax-1) = half * (artviscy(imax-2, jmax-1) + artviscy(imax-1, jmax-2));
+
+artviscx(2, jmax-1) = half * (artviscx(2, jmax-2) + artviscx(3, jmax-1));
+artviscy(2, jmax-1) = half * (artviscy(2, jmax-2) + artviscy(3, jmax-1));
 
 end
 %************************************************************************
